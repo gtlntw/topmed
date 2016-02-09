@@ -201,7 +201,7 @@ for id in idList:
 		opts["chr"] = chr
 		tgt = "{outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz.OK".format(**opts)
 		dep = ""
-		cmd = ["bcftools view /net/topmed2/working/khlin/topmed.freeze2.subset/ topmed_freeze2_10597.chr{chr}.subset.filtered.vcf.gz \
+		cmd = ["bcftools view /net/topmed2/working/khlin/topmed.freeze2.subset/topmed_freeze2_10597.chr{chr}.subset.filtered.vcf.gz \
 --force-samples -s {id} --output-type z --output-file {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz && \
 bcftools index -t -f {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz".format(**opts)]
 # too slow so I decided to extract the snps first   utilities/topmed.freeze2.subset
@@ -221,7 +221,7 @@ bcftools index -t -f {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz".format
 	######################
 	for chr in xrange(1,23):
 		opts["chr"] = chr
-		opts["param"] = "{exclude} --mem={size} --time=0-6:0".format(size=max(24-chr,8)*1000, exclude = exclude) # make srun sh to specify memomry and more time needed
+		opts["param"] = "{exclude} --mem={size} --time=0-8:0".format(size=max(24-chr,8)*1000, exclude = exclude) # make srun sh to specify memomry and more time needed
 		tgt = "{outputDir}/temp/{id}/{id}_phased_chr{chr}.OK".format(**opts)
 		dep = "{outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz.OK".format(**opts)
 		cmd = ["{toolsDir}/shapeit.v2.r837/bin/shapeit -phase \
