@@ -1,0 +1,65 @@
+PopName1	Ancestry	pch	Color	PopName	bg
+BantuKenya	Africa	1	red	BantuKenya	transparent
+BantuSouthAfrica	Africa	1	red	BantuSouthAfrica	transparent
+BiakaPygmy	Africa	2	red	BiakaPygmy	transparent
+Mandenka	Africa	3	red	Mandenka	transparent
+MbutiPygmy	Africa	4	red	MbutiPygmy	transparent
+San	Africa	6	red	San	transparent
+Yoruba	Africa	7	red	Yoruba	transparent
+African	Africa	25	black	African	red
+Mozabite	Africa2	5	darkblue	Mozabite	transparent
+Balochi	Central/South Asia	1	darkgreen	Balochi	transparent
+Brahui	Central/South Asia	2	darkgreen	Brahui	transparent
+Burusho	Central/South Asia	3	darkgreen	Burusho	transparent
+Hazara	Central/South Asia	4	darkgreen	Hazara	transparent
+Kalash	Central/South Asia	5	darkgreen	Kalash	transparent
+Makrani	Central/South Asia	6	darkgreen	Makrani	transparent
+Pathan	Central/South Asia	7	darkgreen	Pathan	transparent
+Sindhi	Central/South Asia	8	darkgreen	Sindhi	transparent
+Uygur	Central/South Asia	9	darkgreen	Uygur	transparent
+Cambodian	Eastern Asia	1	green	Cambodian	transparent
+Dai	Eastern Asia	2	green	Dai	transparent
+Daur	Eastern Asia	3	green	Daur	transparent
+Han-NChina	Eastern Asia	4	green	Han-NChina	transparent
+Han	Eastern Asia	5	green	Han	transparent
+Hezhen	Eastern Asia	6	green	Hezhen	transparent
+Japanese	Eastern Asia	7	green	Japanese	transparent
+Lahu	Eastern Asia	8	green	Lahu	transparent
+Miao	Eastern Asia	9	green	Miao	transparent
+Mongola	Eastern Asia	10	green	Mongola	transparent
+Naxi	Eastern Asia	11	green	Naxi	transparent
+Oroqen	Eastern Asia	12	green	Oroqen	transparent
+She	Eastern Asia	13	green	She	transparent
+Tu	Eastern Asia	14	green	Tu	transparent
+Tujia	Eastern Asia	15	green	Tujia	transparent
+Xibo	Eastern Asia	16	green	Xibo	transparent
+Yakut	Eastern Asia	18	green	Yakut	transparent
+Yi	Eastern Asia	19	green	Yi	transparent
+Asian	Eastern Asia	25	black	Asian/Indonesian/Indian	green
+Adygei	Europe	1	blue	Adygei	transparent
+Basque	Europe	2	blue	Basque	transparent
+French	Europe	3	blue	French	transparent
+Italian	Europe	4	blue	Italian	transparent
+Orcadian	Europe	5	blue	Orcadian	transparent
+Russian	Europe	6	blue	Russian	transparent
+Sardinian	Europe	7	blue	Sardinian	transparent
+Tuscan	Europe	8	blue	Tuscan	transparent
+American	Europe	25	black	American	blue
+European	Europe	25	black	Caucasian/European	blue
+Hispanic	Europe	25	black	Hispanic	lightblue
+Colombian	Native America	1	lightgreen	Colombian	transparent
+Karitiana	Native America	2	lightgreen	Karitiana	transparent
+Maya	Native America	3	lightgreen	Maya	transparent
+Pima	Native America	4	lightgreen	Pima	transparent
+Surui	Native America	5	lightgreen	Surui	transparent
+Native American	Native America	25	black	Native American/Alaska Nativ	lightgreen
+Melanesian	Oceania	1	lightgreen	Melanesian	transparent
+Papuan	Oceania	2	lightgreen	Papuan	transparent
+Aboriginal	Oceania	25	black	Aboriginal	lightgreen
+Pacific Islander	Oceania	25	black	Pacific Islander	lightgreen
+Mixed Ancestry	Unknown	25	black	Mixed Ancestry	grey
+Unknown	Unknown	25	black	Unknown/Other/Missing	grey
+Palestinian	Western Asia	1	darkblue	Palestinian	transparent
+Bedouin	Western Asia	2	darkblue	Bedouin	transparent
+Druze	Western Asia	3	darkblue	Druze	transparent
+Middle Eastern	Western Asia	25	black	Middle Eastern	darkblue
