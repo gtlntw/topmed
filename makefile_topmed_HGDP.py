@@ -29,6 +29,8 @@ opts["help"] = ""
 opts["verbose"] = ""
 opts["debug"] = ""
 opts["outputDir"] = os.getcwd()
+opts["inputDir"] = "/net/topmed2/working/khlin"
+opts["toolsDir"] = "/net/snowwhite/home/khlin/tools"
 opts["makeFile"] = "makefile"
 launchMethod = "local"
 opts["id"] = ""
@@ -76,8 +78,6 @@ inputFilesOK = []
 inputFile = ""
 outputFile = ""
 opts["param"] = "" #parameters for slurm when using shell script
-opts["toolsDir"] = "/net/snowwhite/home/khlin/tools"
-exclude = "--exclude=dl3601"
 
 #create directory needed for slurm script 
 if not os.path.exists(opts["outputDir"]): os.makedirs(opts["outputDir"])
@@ -156,31 +156,31 @@ print idList
 # ######################
 # for chr in xrange(1,23):
 # 	opts["chr"] = chr
-# 	tgt = "{outputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
+# 	tgt = "{inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
 # 	dep = ""
-# 	cmd = ["bcftools view {outputDir}/HGDP_938/HGDP_938_chr{chr}_phased.vcf.gz \
+# 	cmd = ["bcftools view {inputDir}/HGDP_938/HGDP_938_chr{chr}_phased.vcf.gz \
 # --types snps -M2 --exclude-uncalled -f PASS \
-# --output-type z --output-file {outputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz \
-# bcftools index -t -f {outputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz".format(**opts)]
+# --output-type z --output-file {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz \
+# bcftools index -t -f {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz".format(**opts)]
 # 	makeJob(launchMethod, tgt, dep, cmd)
 
-# ######################
-# #0.1. ind. common snp between sample and HGDP
-# ######################
-# opts["id"] = idList[0] # use the first sample to decide the common snps sites between topmed and HGDP
-# for chr in xrange(1,23):
-# 	opts["chr"] = chr
-# 	tgt = "{outputDir}/common_site/topmed_chr{chr}_HGDP_common.txt.OK".format(**opts)
-# 	dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK {outputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
-# 	cmd = ["/net/snowwhite/home/khlin/bin/vcftools --gzvcf {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz --gzdiff {outputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz \
-# --diff-site --stdout | awk '{{if($4 == \"B\")  print $1 \"\\t\" $2}}' > {outputDir}/common_site/topmed_chr{chr}_HGDP_common.txt".format(**opts)]
-# 	makeJob(launchMethod, tgt, dep, cmd)
+######################
+#2.0. ind. common snp between sample and HGDP
+######################
+opts["id"] = "NWD100014" # use the first sample to decide the common snps sites between topmed and HGDP
+for chr in xrange(1,23):
+	opts["chr"] = chr
+	tgt = "{outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt.OK".format(**opts)
+	dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
+	cmd = ["/net/snowwhite/home/khlin/bin/vcftools --gzvcf {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz --gzdiff {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz \
+--diff-site --stdout | awk '{{if($4 == \"B\")  print $1 \"\\t\" $2}}' > {outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt".format(**opts)]
+	makeJob(launchMethod, tgt, dep, cmd)
 
 #############################################
 # Start local ancestry inference
 #############################################
 
-
+exclude = "--exclude=dl3601"
 ######################
 #1.0. log the start time
 ######################
@@ -196,19 +196,16 @@ for id in idList:
 	######################
 	#1.1. extract chromosomes of sample with bi-allelic snps
 	######################
-	opts["param"] = "{exclude} --time=0-5:0".format(exclude = exclude) #indicate this is a quick job
+	opts["param"] = "{exclude} --time=0-3:0".format(exclude = exclude) #indicate this is a quick job
 	for chr in xrange(1,23):
 		opts["chr"] = chr
 		tgt = "{outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz.OK".format(**opts)
 		dep = ""
-		cmd = ["bcftools view /net/topmed2/working/khlin/topmed.freeze2.subset/topmed_freeze2_10597.chr{chr}.subset.filtered.vcf.gz \
---force-samples -s {id} --output-type z --output-file {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz && \
+		cmd = ["bcftools view topmed.freeze2.subset/topmed_freeze2_10597.chr{chr}.subset.filtered.vcf.gz \
+-t {chr} -s {id} \
+--output-type z --output-file {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz && \
 bcftools index -t -f {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz".format(**opts)]
 # too slow so I decided to extract the snps first   utilities/topmed.freeze2.subset
-# ["bcftools view /net/topmed3/working/hmkang/freeze2/10597.v2/final/topmed_freeze2_10597.chr{chr}.overlap_removed.svm_pass.genotypes.vcf.gz \
-# --types snps -M2 --exclude-uncalled -f PASS -T /net/topmed2/working/khlin/common_site/topmed_chr{chr}_1000g_common.txt --force-samples -s {id} \
-# --output-type z --output-file {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz && \
-# bcftools index -t -f {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz".format(**opts)]
 # the command for wave 1
 # 		cmd = ["bcftools view /net/topmed2/working/hmkang/snps/4318/filtered/chr{chr}.filtered.rehdr.gt2.vcf.gz \
 # --types snps -M2 --exclude-uncalled -f PASS --regions {chr} --force-samples -s {id} \
@@ -221,19 +218,19 @@ bcftools index -t -f {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz".format
 	######################
 	for chr in xrange(1,23):
 		opts["chr"] = chr
-		opts["param"] = "{exclude} --mem={size} --time=0-8:0".format(size=max(24-chr,8)*1000, exclude = exclude) # make srun sh to specify memomry and more time needed
+		opts["param"] = "{exclude} --mem={size} --time=0-6:0".format(size=max(26-chr,2)*500, exclude = exclude) # make srun sh to specify memomry and more time needed
 		tgt = "{outputDir}/temp/{id}/{id}_phased_chr{chr}.OK".format(**opts)
 		dep = "{outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz.OK".format(**opts)
 		cmd = ["{toolsDir}/shapeit.v2.r837/bin/shapeit -phase \
 -V {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz \
--M {outputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt \
---input-ref {outputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.hap.gz {outputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.legend.gz {outputDir}/1000GP_Phase3/1000GP_Phase3.sample \
+-M {inputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt \
+--input-ref {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.hap.gz {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.legend.gz {inputDir}/1000GP_Phase3/1000GP_Phase3.sample \
 -O {outputDir}/temp/{id}/{id}_phased_chr{chr} \
 --output-log {outputDir}/temp/{id}/{id}_phased_chr{chr}.Output || \
 {toolsDir}/shapeit.v2.r837/bin/shapeit -phase \
 -V {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz \
--M {outputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt \
---input-ref {outputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.hap.gz {outputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.legend.gz {outputDir}/1000GP_Phase3/1000GP_Phase3.sample \
+-M {inputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt \
+--input-ref {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.hap.gz {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.legend.gz {inputDir}/1000GP_Phase3/1000GP_Phase3.sample \
 --exclude-snp {outputDir}/temp/{id}/{id}_phased_chr{chr}.Output.snp.strand.exclude \
 -O {outputDir}/temp/{id}/{id}_phased_chr{chr} \
 --output-log {outputDir}/temp/{id}/{id}_phased_chr{chr}.Output".format(**opts)]
@@ -266,9 +263,9 @@ tabix -f -p vcf {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz".form
 	for chr in xrange(1,23):
 		opts["chr"] = chr
 		tgt = "{outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
-		dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK {outputDir}/common_site/topmed_chr{chr}_HGDP_common.txt.OK".format(**opts)
-		cmd = ["bcftools merge -O u -R {outputDir}/common_site/topmed_chr{chr}_HGDP_common.txt \
-{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz {outputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz | \
+		dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK {outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt.OK".format(**opts)
+		cmd = ["bcftools merge -O u -R {outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt \
+{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz | \
 bcftools view --types snps -M2 --exclude-uncalled -f PASS -O z -o {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz && \
 bcftools index -t -f {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz".format(**opts)]
 		makeJob(launchMethod, tgt, dep, cmd)
@@ -283,8 +280,8 @@ bcftools index -t -f {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vc
 		cmd = ["bcftools view {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz \
 | bcftools query -f '[%GT]\\n' - | sed 's/|//g' > {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.alleles && \
 bcftools view {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz \
-| bcftools query -f '%POS\\n' - | Rscript {outputDir}/utilities/generate_markerLocations_file.R stdin {outputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.locations && \
-bcftools query -l {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz | Rscript {outputDir}/utilities/make_classes_file.R \
+| bcftools query -f '%POS\\n' - | Rscript {inputDir}/utilities/generate_markerLocations_file.R stdin {inputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.locations && \
+bcftools query -l {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz | Rscript {inputDir}/utilities/make_classes_file.R \
 stdin {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.classes && \
 bcftools query -f '%CHROM\t%POS\\n' {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz > {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.pos".format(**opts)]
 		makeJob(launchMethod, tgt, dep, cmd)
@@ -316,7 +313,7 @@ python ./RunRFMix.py PopPhased {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.alleles 
 	opts["inputFiles"] = " ".join(inputFiles)
 	tgt = "{outputDir}/output/plot/{id}_HGDP_local_ancestry_RFMix.png.OK".format(**opts)
 	dep = " ".join(inputFilesOK)
-	cmd = ["Rscript {outputDir}/utilities/plot_local_ancestry_pipeline.R {id}_HGDP_RFMix {outputFile} {inputFiles} 40000".format(**opts)]
+	cmd = ["Rscript /net/topmed2/working/khlin/utilities/plot_local_ancestry_pipeline.R {id}_HGDP_RFMix {outputFile} {inputFiles} 40000".format(**opts)]
 	makeJob(launchMethod, tgt, dep, cmd)
 
 	######################
@@ -364,7 +361,7 @@ cmds.append("\trm -f temp/NWD*/*.* output/LAI/NWD*/*.*")
 #clean_job
 tgts.append("clean_job")
 deps.append("")
-cmds.append("\tps xu | grep make | grep {jobName} | awk '{{print $$2}}' | xargs --verbose kill; scancel -n {jobName}\n".format(**opts))
+cmds.append("\tscancel -n {jobName}; ps xu | grep make | grep {jobName} | awk '{{print $$2}}' | xargs --verbose kill\n".format(**opts))
  
 for tgt,dep,cmd in zip(tgts, deps, cmds):
 	MAK.write("{tgt} : {dep}\n".format(tgt=tgt, dep=dep))

@@ -170,10 +170,10 @@ print idList
 opts["id"] = "NWD100014" # use the first sample to decide the common snps sites between topmed and HGDP
 for chr in xrange(1,23):
 	opts["chr"] = chr
-	tgt = "{outputDir}/common_site/topmed_chr{chr}_HGDP_common.txt.OK".format(**opts)
+	tgt = "{outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt.OK".format(**opts)
 	dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
 	cmd = ["/net/snowwhite/home/khlin/bin/vcftools --gzvcf {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz --gzdiff {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz \
---diff-site --stdout | awk '{{if($4 == \"B\")  print $1 \"\\t\" $2}}' > {outputDir}/common_site/topmed_chr{chr}_HGDP_common.txt".format(**opts)]
+--diff-site --stdout | awk '{{if($4 == \"B\")  print $1 \"\\t\" $2}}' > {outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt".format(**opts)]
 	makeJob(launchMethod, tgt, dep, cmd)
 
 #############################################
@@ -263,8 +263,8 @@ tabix -f -p vcf {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz".form
 	for chr in xrange(1,23):
 		opts["chr"] = chr
 		tgt = "{outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
-		dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK {outputDir}/common_site/topmed_chr{chr}_HGDP_common.txt.OK".format(**opts)
-		cmd = ["bcftools merge -O u -R {outputDir}/common_site/topmed_chr{chr}_HGDP_common.txt \
+		dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK {outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt.OK".format(**opts)
+		cmd = ["bcftools merge -O u -R {outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt \
 {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz | \
 bcftools view --types snps -M2 --exclude-uncalled -f PASS -O z -o {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz && \
 bcftools index -t -f {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz".format(**opts)]
@@ -361,7 +361,7 @@ cmds.append("\trm -f temp/NWD*/*.* output/LAI/NWD*/*.*")
 #clean_job
 tgts.append("clean_job")
 deps.append("")
-cmds.append("\tps xu | grep make | grep {jobName} | awk '{{print $$2}}' | xargs --verbose kill; scancel -n {jobName}\n".format(**opts))
+cmds.append("\tscancel -n {jobName}; ps xu | grep make | grep {jobName} | awk '{{print $$2}}' | xargs --verbose kill\n".format(**opts))
  
 for tgt,dep,cmd in zip(tgts, deps, cmds):
 	MAK.write("{tgt} : {dep}\n".format(tgt=tgt, dep=dep))
