@@ -106,7 +106,7 @@ def makeSlurm(tgt, dep, cmd):
 	for c in cmd:
 		opts.update({"command": c})
 		#contains pipe or cd
-		if re.search("\||^cd", c):
+		if re.search("\||^cd|&&", c):
 			opts["slurmScriptNo"] += 1
 			opts["slurmScriptFile"] = "{slurmScriptsDir}/{slurmScriptNo}_{jobName}.sh".format(**opts)
 			IN = open("{slurmScriptFile}".format(**opts), "w")
@@ -180,7 +180,7 @@ for chr in xrange(1,23):
 # Start local ancestry inference
 #############################################
 
-exclude = "--exclude=dl3601"
+exclude = "--exclude=dl3601,dl3604"
 ######################
 #1.0. log the start time
 ######################
@@ -322,14 +322,14 @@ python ./RunRFMix.py PopPhased {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.alleles 
 	cmds_temp = []
 	tgt = "{outputDir}/temp/{id}/{id}_cleanup.OK".format(**opts)
 	dep = "{outputDir}/output/plot/{id}_HGDP_local_ancestry_RFMix.png.OK".format(**opts)
-	for chr in xrange(1,23):
-		opts["chr"] = chr
-		cmds_temp.append("cp {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.0.Viterbi.txt {outputDir}/output/LAI/{id}/ && \
-cp {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.pos {outputDir}/output/LAI/{id}/ && \
-cp {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz {outputDir}/output/LAI/{id}/ && \
-cp {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.tbi {outputDir}/output/LAI/{id}/".format(**opts))
-	cmds_temp.append("find temp/{id} ! -name '*.OK' -type f -exec rm -f {{}} +".format(**opts))
-	makeJob("local", tgt, dep, cmds_temp)
+	cmds_temp.append("cp {outputDir}/temp/{id}/{id}_HGDP_chr*.0.Viterbi.txt {outputDir}/output/LAI/{id}/ && \
+cp {outputDir}/temp/{id}/{id}_HGDP_chr*.pos {outputDir}/output/LAI/{id}/ ".format(**opts)) 
+## stop backup phased vcf 2016/02/21 since the pipeline keeps failing
+# && \
+# cp {outputDir}/temp/{id}/{id}_filtered_phased_chr*.vcf.gz {outputDir}/output/LAI/{id}/ && \
+# cp {outputDir}/temp/{id}/{id}_filtered_phased_chr*.vcf.gz.tbi {outputDir}/output/LAI/{id}/
+	cmds_temp.append("find temp/{id} ! -name '*.OK' -type f -exec rm -f {{}} \;".format(**opts))
+	makeJob(launchMethod, tgt, dep, cmds_temp)
 
 
 ######################
@@ -354,9 +354,9 @@ MAK_tgt.write(".DELETE_ON_ERROR:\n\n")
 MAK_tgt.write("all: {tgts}\n\n".format(tgts=" ".join(tgts))) 
 
 #clean
-tgts.append("clean")
-deps.append("")
-cmds.append("\trm -f temp/NWD*/*.* output/LAI/NWD*/*.*")
+#tgts.append("clean")
+#deps.append("")
+#cmds.append("\trm -f temp/NWD*/*.* output/LAI/NWD*/*.*")
 
 #clean_job
 tgts.append("clean_job")

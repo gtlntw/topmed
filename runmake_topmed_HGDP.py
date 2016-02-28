@@ -30,7 +30,7 @@ opts["id"] = "." #default is to read from id.txt
 opts["launchMethod"] = "slurm"
 opts["job_name"] = "topmedlai"
 opts["jobNo"] = "500" #number of jobs in parallel
-opts["sampleNo"] = "500" #up to number of samples to submit at a time
+opts["sampleNo"] = "100" #up to number of samples to submit at a time
 
 o, a = getopt.getopt(sys.argv[1:], "i:l:j:h")
 for k,v in o:
