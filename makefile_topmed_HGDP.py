@@ -115,9 +115,9 @@ def makeSlurm(tgt, dep, cmd):
 			IN.close()
 			os.chmod("{slurmScriptFile}".format(**opts), 0755)
 
-			cmd_tmp.append("\tsrun -p topmed,nomosix,main -J {jobName} -D {outputDir} {param} {slurmScriptFile} \n".format(**opts))
+			cmd_tmp.append("\tsrun -p topmed -J {jobName} -D {outputDir} {param} {slurmScriptFile} \n".format(**opts))
 		else:
-			cmd_tmp.append("\tsrun -p topmed,nomosix,main -J {jobName} -D {outputDir} {param} {command} \n".format(**opts))
+			cmd_tmp.append("\tsrun -p topmed -J {jobName} -D {outputDir} {param} {command} \n".format(**opts))
 	cmd_tmp.append("\ttouch {tgt}\n".format(tgt=tgt))
 	cmds.append(cmd_tmp)
  
@@ -167,14 +167,14 @@ print idList
 ######################
 #2.0. ind. common snp between sample and HGDP
 ######################
-opts["id"] = "NWD100014" # use the first sample to decide the common snps sites between topmed and HGDP
-for chr in xrange(1,23):
-	opts["chr"] = chr
-	tgt = "{outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt.OK".format(**opts)
-	dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
-	cmd = ["/net/snowwhite/home/khlin/bin/vcftools --gzvcf {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz --gzdiff {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz \
---diff-site --stdout | awk '{{if($4 == \"B\")  print $1 \"\\t\" $2}}' > {outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt".format(**opts)]
-	makeJob(launchMethod, tgt, dep, cmd)
+# opts["id"] = "NWD100014" # use the first sample to decide the common snps sites between topmed and HGDP
+# for chr in xrange(1,23):
+# 	opts["chr"] = chr
+# 	tgt = "{outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt.OK".format(**opts)
+# 	dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
+# 	cmd = ["/net/snowwhite/home/khlin/bin/vcftools --gzvcf {outputDir}/output/LAI/{id}/{id}_filtered_phased_chr{chr}.vcf.gz --gzdiff {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz \
+# --diff-site --stdout | awk '{{if($4 == \"B\")  print $1 \"\\t\" $2}}' > {outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt".format(**opts)]
+# 	makeJob(launchMethod, tgt, dep, cmd)
 
 #############################################
 # Start local ancestry inference
@@ -317,7 +317,7 @@ python ./RunRFMix.py PopPhased {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.alleles 
 	makeJob(launchMethod, tgt, dep, cmd)
 
 	######################
-	#5.1. copy results and clean up
+	#2.5. copy results and clean up
 	######################
 	cmds_temp = []
 	tgt = "{outputDir}/temp/{id}/{id}_cleanup.OK".format(**opts)
@@ -331,12 +331,21 @@ cp {outputDir}/temp/{id}/{id}_HGDP_chr*.pos {outputDir}/output/LAI/{id}/ ".forma
 	cmds_temp.append("find temp/{id} ! -name '*.OK' -type f -exec rm -f {{}} \;".format(**opts))
 	makeJob(launchMethod, tgt, dep, cmds_temp)
 
+	######################
+	#2.6. calculate global ancestry based on lai
+	######################
+	cmds_temp = []
+	tgt = "{outputDir}/output/LAI/{id}/{id}_global_lai.OK".format(**opts)
+	dep = "{outputDir}/temp/{id}/{id}_cleanup.OK".format(**opts)
+	cmds_temp.append(" Rscript {inputDir}/analysis/2016-03-04\\ create\\ global,\\ king,\\ singleton\\ per\\ sample/global_ancestry.R id {id}".format(**opts)) 
+	makeJob(launchMethod, tgt, dep, cmds_temp)
+
 
 ######################
 #5.2. log end time
 ######################
 tgt = "{outputDir}/log/end.runmake.lai.OK".format(**opts)
-dep = "{outputDir}/temp/{id}/{id}_cleanup.OK".format(**opts)
+dep = "{outputDir}/output/LAI/{id}/{id}_global_lai.OK".format(**opts)
 cmd = ["date | awk '{{print \"\\nend: \"$$0}}' >> {outputDir}/log/runmake_lai_time.log".format(**opts)]
 makeJob("local", tgt, dep, cmd)
 
