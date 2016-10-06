@@ -50,20 +50,7 @@ for k,v in o:
 		opts["jobName"] = v
 		opts["makeFile"] = "makefile_{jobName}".format(**opts)
 	elif k == "-i":
-		######################
-		#read in sample id
-		######################
-		if re.search("txt", v):
-			infh = open(v)
-			for line in infh.xreadlines():
-				item = line.strip()
-				if not re.search("^#+", item):
-					idList.append(item)
-			infh.close()
-		else:
-			idList = [v] #use specified id
-		print "sample id:"
-		print idList
+		opts["id"] = v
 
 
 ##############
@@ -128,9 +115,9 @@ def makeSlurm(tgt, dep, cmd):
 			IN.close()
 			os.chmod("{slurmScriptFile}".format(**opts), 0755)
 
-			cmd_tmp.append("\tsrun -p nomosix -J {jobName} -D {outputDir} {param} {slurmScriptFile} \n".format(**opts))
+			cmd_tmp.append("\tsrun -p topmed -J {jobName} -D {outputDir} {param} {slurmScriptFile} \n".format(**opts))
 		else:
-			cmd_tmp.append("\tsrun -p nomosix -J {jobName} -D {outputDir} {param} {command} \n".format(**opts))
+			cmd_tmp.append("\tsrun -p topmed -J {jobName} -D {outputDir} {param} {command} \n".format(**opts))
 	cmd_tmp.append("\ttouch {tgt}\n".format(tgt=tgt))
 	cmds.append(cmd_tmp)
  
@@ -143,6 +130,21 @@ def makeLocalStep(tgt, dep, cmd):
 		cmd_tmp.append("\t{command}\n".format(command=c))
 	cmd_tmp.append("\ttouch {tgt}\n".format(tgt=tgt))
 	cmds.append(cmd_tmp)
+
+######################
+#read in sample id
+######################
+if opts["id"] == ".":
+	infh = open("id.txt")
+	for line in infh.xreadlines():
+		item = line.strip()
+		if not re.search("^#+", item):
+			idList.append(item)
+	infh.close()
+else:
+	idList = [opts["id"]] #use specified id
+print "sample id:"
+print idList
 
 
 #############################################
@@ -178,7 +180,7 @@ def makeLocalStep(tgt, dep, cmd):
 # Start local ancestry inference
 #############################################
 
-exclude = "--exclude=r6306"
+exclude = "--exclude=dl3601,dl3604"
 ######################
 #1.0. log the start time
 ######################
@@ -192,17 +194,17 @@ for id in idList:
 	if not os.path.exists("output/LAI/{id}".format(**opts)): os.makedirs("output/LAI/{id}".format(**opts)) #create LAI result folder
 	if not os.path.exists("temp/{id}".format(**opts)): os.makedirs("temp/{id}".format(**opts)) #create temp folder
 	######################
-	#1.1. extract phased chromosomes of sample with bi-allelic snps
+	#1.1. extract chromosomes of sample with bi-allelic snps
 	######################
 	opts["param"] = "{exclude} --time=0-3:0".format(exclude = exclude) #indicate this is a quick job
 	for chr in xrange(1,23):
 		opts["chr"] = chr
-		tgt = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK".format(**opts)
+		tgt = "{outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz.OK".format(**opts)
 		dep = ""
-		cmd = ["bcftools view topmed.freeze3.phased.hgdp.snp/topmed.freeze3.chr{chr}.phased.hgdp.snp.filtered.vcf.gz \
--t {chr} -s {id} --force-samples \
---output-type z --output-file {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz && \
-bcftools index -t -f {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz".format(**opts)]
+		cmd = ["bcftools view topmed.freeze2.subset/topmed_freeze2_10597.chr{chr}.subset.filtered.vcf.gz \
+-t {chr} -s {id} \
+--output-type z --output-file {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz && \
+bcftools index -t -f {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz".format(**opts)]
 # too slow so I decided to extract the snps first   utilities/topmed.freeze2.subset
 # the command for wave 1
 # 		cmd = ["bcftools view /net/topmed2/working/hmkang/snps/4318/filtered/chr{chr}.filtered.rehdr.gt2.vcf.gz \
@@ -211,49 +213,49 @@ bcftools index -t -f {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz"
 # bcftools index -t -f {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz".format(**opts)]
 		makeJob(launchMethod, tgt, dep, cmd)
 
-# 	######################
-# 	#1.2. run shapeit to phase and exclude missing snps if necessary
-# 	######################
-# 	for chr in xrange(1,23):
-# 		opts["chr"] = chr
-# 		opts["param"] = "{exclude} --mem={size} --time=0-6:0".format(size=max(26-chr,2)*500, exclude = exclude) # make srun sh to specify memomry and more time needed
-# 		tgt = "{outputDir}/temp/{id}/{id}_phased_chr{chr}.OK".format(**opts)
-# 		dep = "{outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz.OK".format(**opts)
-# 		cmd = ["{toolsDir}/shapeit.v2.r837/bin/shapeit -phase \
-# -V {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz \
-# -M {inputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt \
-# --input-ref {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.hap.gz {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.legend.gz {inputDir}/1000GP_Phase3/1000GP_Phase3.sample \
-# -O {outputDir}/temp/{id}/{id}_phased_chr{chr} \
-# --output-log {outputDir}/temp/{id}/{id}_phased_chr{chr}.Output || \
-# {toolsDir}/shapeit.v2.r837/bin/shapeit -phase \
-# -V {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz \
-# -M {inputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt \
-# --input-ref {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.hap.gz {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.legend.gz {inputDir}/1000GP_Phase3/1000GP_Phase3.sample \
-# --exclude-snp {outputDir}/temp/{id}/{id}_phased_chr{chr}.Output.snp.strand.exclude \
-# -O {outputDir}/temp/{id}/{id}_phased_chr{chr} \
-# --output-log {outputDir}/temp/{id}/{id}_phased_chr{chr}.Output".format(**opts)]
-# 		makeJob(launchMethod, tgt, dep, cmd)
+	######################
+	#1.2. run shapeit to phase and exclude missing snps if necessary
+	######################
+	for chr in xrange(1,23):
+		opts["chr"] = chr
+		opts["param"] = "{exclude} --mem={size} --time=0-6:0".format(size=max(26-chr,2)*500, exclude = exclude) # make srun sh to specify memomry and more time needed
+		tgt = "{outputDir}/temp/{id}/{id}_phased_chr{chr}.OK".format(**opts)
+		dep = "{outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz.OK".format(**opts)
+		cmd = ["{toolsDir}/shapeit.v2.r837/bin/shapeit -phase \
+-V {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz \
+-M {inputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt \
+--input-ref {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.hap.gz {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.legend.gz {inputDir}/1000GP_Phase3/1000GP_Phase3.sample \
+-O {outputDir}/temp/{id}/{id}_phased_chr{chr} \
+--output-log {outputDir}/temp/{id}/{id}_phased_chr{chr}.Output || \
+{toolsDir}/shapeit.v2.r837/bin/shapeit -phase \
+-V {outputDir}/temp/{id}/{id}_filtered_chr{chr}.vcf.gz \
+-M {inputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt \
+--input-ref {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.hap.gz {inputDir}/1000GP_Phase3/1000GP_Phase3_chr{chr}.legend.gz {inputDir}/1000GP_Phase3/1000GP_Phase3.sample \
+--exclude-snp {outputDir}/temp/{id}/{id}_phased_chr{chr}.Output.snp.strand.exclude \
+-O {outputDir}/temp/{id}/{id}_phased_chr{chr} \
+--output-log {outputDir}/temp/{id}/{id}_phased_chr{chr}.Output".format(**opts)]
+		makeJob(launchMethod, tgt, dep, cmd)
 	
 
-# 	opts["param"] = "{exclude} --time=0-2:0".format(exclude = exclude) #indicate below is a quick job
-# 	######################
-# 	#1.3. convert back to vcf.gz
-# 	######################
-# 	inputFiles = [] #clean up
-# 	inputFilesOK = [] #clean up
+	opts["param"] = "{exclude} --time=0-2:0".format(exclude = exclude) #indicate below is a quick job
+	######################
+	#1.3. convert back to vcf.gz
+	######################
+	inputFiles = [] #clean up
+	inputFilesOK = [] #clean up
 
-# 	for chr in xrange(1,23):
-# 		opts["chr"] = chr
-# 		tgt = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK".format(**opts)
-# 		inputFilesOK.append(tgt)
-# 		dep = "{outputDir}/temp/{id}/{id}_phased_chr{chr}.OK".format(**opts)
-# 		cmd = ["{toolsDir}/shapeit.v2.r837/bin/shapeit -convert \
-# --input-haps {outputDir}/temp/{id}/{id}_phased_chr{chr} \
-# --output-vcf {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf \
-# --output-log {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf && \
-# bgzip -f {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf && \
-# tabix -f -p vcf {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz".format(**opts)]
-# 		makeJob(launchMethod, tgt, dep, cmd)
+	for chr in xrange(1,23):
+		opts["chr"] = chr
+		tgt = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK".format(**opts)
+		inputFilesOK.append(tgt)
+		dep = "{outputDir}/temp/{id}/{id}_phased_chr{chr}.OK".format(**opts)
+		cmd = ["{toolsDir}/shapeit.v2.r837/bin/shapeit -convert \
+--input-haps {outputDir}/temp/{id}/{id}_phased_chr{chr} \
+--output-vcf {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf \
+--output-log {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf && \
+bgzip -f {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf && \
+tabix -f -p vcf {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz".format(**opts)]
+		makeJob(launchMethod, tgt, dep, cmd)
 
 	######################
 	#2.1. RFMix: merge sample and HGDP (filtered HGDP and keep only bi-allelic)
@@ -261,8 +263,8 @@ bcftools index -t -f {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz"
 	for chr in xrange(1,23):
 		opts["chr"] = chr
 		tgt = "{outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
-		dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK".format(**opts)# {outputDir}/common_site/topmed_freeze3_chr{chr}_HGDP_common.txt.OK".format(**opts)
-		cmd = ["bcftools merge -O u -R {outputDir}/common_site/topmed_freeze3_chr{chr}_HGDP_common.txt \
+		dep = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK {outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt.OK".format(**opts)
+		cmd = ["bcftools merge -O u -R {outputDir}/common_site/topmed_freeze2_chr{chr}_HGDP_common.txt \
 {outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz {inputDir}/HGDP_938/HGDP_938_chr{chr}_filtered_phased.vcf.gz | \
 bcftools view --types snps -M2 --exclude-uncalled -f PASS -O z -o {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz && \
 bcftools index -t -f {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz".format(**opts)]

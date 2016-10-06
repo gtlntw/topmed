@@ -26,7 +26,7 @@ def usage():
 
 #option variables
 opts = {}
-opts["id"] = "." #default is to read from id.txt
+opts["id"] = "id.txt" #default is to read from id.txt
 opts["launchMethod"] = "slurm"
 opts["job_name"] = "topmedlai"
 opts["jobNo"] = "500" #number of jobs in parallel
@@ -53,6 +53,7 @@ for k,v in o:
 				if not re.search("^#+", item):
 					idList.append(item)
 			infh.close()
+			opts["id"] = v
 		else:
 			opts["id"] = v
 
@@ -73,11 +74,11 @@ try:
 		os.system("echo running " + str(x+1) + "th to "+ str(x+int(opts["sampleNo"])) +"th sample")
 		# print "python makefile_topmed_HGDP.py -l {launchMethod} -j {job_name} -i {id}".format(**opts)
 		# print "make -f makefile_{job_name} -j {jobNo} --keep-going ".format(**opts)
-		os.system("python makefile_topmed_HGDP.py -l {launchMethod} -j {job_name} -i {id}".format(**opts))
+		os.system("python makefile_topmed_HGDP.py -l {launchMethod} -j {job_name} -i id.txt".format(**opts))
 		os.system("make -f makefile_{job_name} -j {jobNo} --keep-going ".format(**opts))
 		os.system("echo \n")
 except NameError: ##when no id list is given
-	os.system("python makefile_topmed_HGDP.py -l {launchMethod} -j {job_name} -i {id}".format(**opts))
+	os.system("python makefile_topmed_HGDP.py -l {launchMethod} -j {job_name} -i id.txt".format(**opts))
 	os.system("make -f makefile_{job_name} -j {jobNo} --keep-going ".format(**opts))
 
 
