@@ -128,9 +128,9 @@ def makeSlurm(tgt, dep, cmd):
 			IN.close()
 			os.chmod("{slurmScriptFile}".format(**opts), 0755)
 
-			cmd_tmp.append("\tsrun -p nomosix -J {jobName} -D {outputDir} {param} {slurmScriptFile} \n".format(**opts))
+			cmd_tmp.append("\tsrun -p topmed -J {jobName} -D {outputDir} {param} {slurmScriptFile} \n".format(**opts))
 		else:
-			cmd_tmp.append("\tsrun -p nomosix -J {jobName} -D {outputDir} {param} {command} \n".format(**opts))
+			cmd_tmp.append("\tsrun -p topmed -J {jobName} -D {outputDir} {param} {command} \n".format(**opts))
 	cmd_tmp.append("\ttouch {tgt}\n".format(tgt=tgt))
 	cmds.append(cmd_tmp)
  
@@ -178,7 +178,8 @@ def makeLocalStep(tgt, dep, cmd):
 # Start local ancestry inference
 #############################################
 
-exclude = "--exclude=r6306"
+exclude = "--exclude=topmed,topmed5,topmed6,topmed7,topmed8,\"r[6301-6315]\""
+opts["param"] = "{exclude} --time=0-3:0".format(exclude = exclude) #indicate this is a quick job
 ######################
 #1.0. log the start time
 ######################
@@ -194,7 +195,6 @@ for id in idList:
 	######################
 	#1.1. extract phased chromosomes of sample with bi-allelic snps
 	######################
-	opts["param"] = "{exclude} --time=0-3:0".format(exclude = exclude) #indicate this is a quick job
 	for chr in xrange(1,23):
 		opts["chr"] = chr
 		tgt = "{outputDir}/temp/{id}/{id}_filtered_phased_chr{chr}.vcf.gz.OK".format(**opts)
@@ -275,10 +275,10 @@ bcftools index -t -f {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vc
 		opts["chr"] = chr
 		tgt = "{outputDir}/temp/{id}/{id}_HGDP_chr{chr}_RFMix_files_prep.OK".format(**opts)
 		dep = "{outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz.OK".format(**opts)
-		cmd = ["bcftools view {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz \
-| bcftools query -f '[%GT]\\n' - | sed 's/|//g' > {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.alleles && \
-bcftools view {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz \
-| bcftools query -f '%POS\\n' - | Rscript {inputDir}/utilities/generate_markerLocations_file.R stdin {inputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.locations && \
+		cmd = ["bcftools query -f '[%GT]\\n' {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz \
+| sed 's/|//g' > {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.alleles && \
+bcftools query -f '%POS\\n' {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz \
+| Rscript {inputDir}/utilities/generate_markerLocations_file.R stdin {inputDir}/genetic_map_GRCh37/genetic_map_chr{chr}_combined_b37.txt {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.locations && \
 bcftools query -l {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz | Rscript {inputDir}/utilities/make_classes_file.R \
 stdin {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.classes && \
 bcftools query -f '%CHROM\t%POS\\n' {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_filtered_phased.vcf.gz > {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.pos".format(**opts)]
@@ -296,7 +296,7 @@ bcftools query -f '%CHROM\t%POS\\n' {outputDir}/temp/{id}/{id}_HGDP_chr{chr}_fil
 		tgt = "{outputDir}/temp/{id}/{id}_HGDP_chr{chr}_RFMix_run.OK".format(**opts)
 		inputFilesOK.append(tgt)
 		dep = "{outputDir}/temp/{id}/{id}_HGDP_chr{chr}_RFMix_files_prep.OK".format(**opts)
-		cmd = ["cd {toolsDir}/RFMix_v1.5.4 && \
+		cmd = ["cd {inputDir}/utilities/RFMix_v1.5.4 && \
 python ./RunRFMix.py PopPhased {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.alleles \
 {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.classes \
 {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.locations \
@@ -311,7 +311,7 @@ python ./RunRFMix.py PopPhased {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.alleles 
 	opts["inputFiles"] = " ".join(inputFiles)
 	tgt = "{outputDir}/output/plot/{id}_HGDP_local_ancestry_RFMix.png.OK".format(**opts)
 	dep = " ".join(inputFilesOK)
-	cmd = ["Rscript /net/topmed2/working/khlin/utilities/plot_local_ancestry_pipeline.R {id}_HGDP_RFMix {outputFile} {inputFiles} 40000".format(**opts)]
+	cmd = ["Rscript {inputDir}/utilities/plot_local_ancestry_pipeline.R {id}_HGDP_RFMix {outputFile} {inputFiles} 40000".format(**opts)]
 	makeJob(launchMethod, tgt, dep, cmd)
 
 	######################
@@ -320,14 +320,14 @@ python ./RunRFMix.py PopPhased {outputDir}/temp/{id}/{id}_HGDP_chr{chr}.alleles 
 	cmds_temp = []
 	tgt = "{outputDir}/temp/{id}/{id}_cleanup.OK".format(**opts)
 	dep = "{outputDir}/output/plot/{id}_HGDP_local_ancestry_RFMix.png.OK".format(**opts)
-	cmds_temp.append("cp {outputDir}/temp/{id}/{id}_HGDP_chr*.0.Viterbi.txt {outputDir}/output/LAI/{id}/ && \
-cp {outputDir}/temp/{id}/{id}_HGDP_chr*.pos {outputDir}/output/LAI/{id}/ ".format(**opts)) 
+	cmds_temp.append("\cp {outputDir}/temp/{id}/{id}_HGDP_chr*.0.Viterbi.txt {outputDir}/output/LAI/{id}/ && \
+\cp {outputDir}/temp/{id}/{id}_HGDP_chr*.pos {outputDir}/output/LAI/{id}/ ".format(**opts)) 
 ## stop backup phased vcf 2016/02/21 since the pipeline keeps failing
 # && \
 # cp {outputDir}/temp/{id}/{id}_filtered_phased_chr*.vcf.gz {outputDir}/output/LAI/{id}/ && \
 # cp {outputDir}/temp/{id}/{id}_filtered_phased_chr*.vcf.gz.tbi {outputDir}/output/LAI/{id}/
-	cmds_temp.append("find temp/{id} ! -name '*.OK' -type f -exec rm -f {{}} \;".format(**opts))
-	makeJob(launchMethod, tgt, dep, cmds_temp)
+	cmds_temp.append("find {outputDir}/temp/{id} ! -name '*.OK' -type f -exec rm -f {{}} \;".format(**opts))
+	makeJob("local", tgt, dep, cmds_temp)  #local job because not running any intensive program
 
 	######################
 	#2.6. calculate global ancestry based on lai
@@ -336,7 +336,7 @@ cp {outputDir}/temp/{id}/{id}_HGDP_chr*.pos {outputDir}/output/LAI/{id}/ ".forma
 	tgt = "{outputDir}/output/LAI/{id}/{id}_global_lai.OK".format(**opts)
 	dep = "{outputDir}/temp/{id}/{id}_cleanup.OK".format(**opts)
 	cmds_temp.append(" Rscript {inputDir}/analysis/2016-03-04\\ create\\ global,\\ king,\\ singleton\\ per\\ sample/global_ancestry.R id {id}".format(**opts)) 
-	makeJob(launchMethod, tgt, dep, cmds_temp)
+	makeJob(launchMethod, tgt, dep, cmds_temp) #local job because not running any intensive program
 
 
 ######################

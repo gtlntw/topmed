@@ -29,7 +29,7 @@ opts = {}
 opts["id"] = "id.txt" #default is to read from id.txt
 opts["launchMethod"] = "slurm"
 opts["job_name"] = "topmedlai"
-opts["jobNo"] = "500" #number of jobs in parallel
+opts["jobNo"] = "200" #number of jobs in parallel
 opts["sampleNo"] = "100" #up to number of samples to submit at a time
 
 o, a = getopt.getopt(sys.argv[1:], "i:l:j:h")
@@ -60,7 +60,7 @@ for k,v in o:
 #clean start and end log
 os.system("rm -rf log/start*.OK log/end*.OK slurm_scripts/*.*")
 
-#if call by id list then submit up to 10 samples at a time
+#if call by id list then submit up to 100 samples at a time
 os.system("echo running {jobNo} parallel jobs".format(**opts))
 os.system("echo submitting up to {sampleNo} individuals at a time\n".format(**opts))
 try:

@@ -32,7 +32,7 @@ do
 	> topmed_freeze2_unreklated_${x}000_singleton.txt
 	for chr in {1..22}
 	do
-	cat emp/topmed_freeze2_${x}000.chr${chr}.overlap_removed.svm_pass.stats | awk 'BEGIN{n_sin=0} {if($3==1) n_sin=n_sin+1} END{print "chr'${chr}'\t"n_sin}' >> topmed_freeze2_unreklated_${x}000_singleton.txt
+	cat temp/topmed_freeze2_${x}000.chr${chr}.overlap_removed.svm_pass.stats | awk 'BEGIN{n_sin=0} {if($3==1) n_sin=n_sin+1} END{print "chr'${chr}'\t"n_sin}' >> topmed_freeze2_unreklated_${x}000_singleton.txt
 	done
 	awk 'BEGIN {SUM=0} {SUM=SUM+$2} END {print "Total\t"SUM}' topmed_freeze2_unreklated_${x}000_singleton.txt >> topmed_freeze2_unreklated_${x}000_singleton.txt
 done

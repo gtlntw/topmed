@@ -24,9 +24,9 @@ def find_gt_half(list):
 ######################
 #read in global ancestry
 ######################
-infh = open("global_freeze3a.txt")
-outfh = open("ethnicity_half.txt", 'w')
-outfh1 = open("ethnicity_max.txt", 'w')
+infh = open("global_freeze3a_topmed_only.txt")
+outfh = open("ethnicity_half_topmed_only.txt", 'w')
+outfh1 = open("ethnicity_max_topmed_only.txt", 'w')
 for line in infh.xreadlines():
 	items = line.strip().split(" ")
 	id = items[0]

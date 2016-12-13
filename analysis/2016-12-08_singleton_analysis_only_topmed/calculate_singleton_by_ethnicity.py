@@ -17,6 +17,10 @@ idList=[]
 unrelatedList=[]
 ethnicityList=[] #unrelated samples only
 
+#create temp and rseults directory
+if not os.path.exists("temp"): os.makedirs("temp")
+if not os.path.exists("result"): os.makedirs("result")
+
 ######################
 #read in ethnicity ancestry and unrelated list
 ######################
@@ -28,7 +32,7 @@ for line in infh.xreadlines():
 infh.close()
 
 ##global ancestry list
-infh = open("ethnicity_max.txt")
+infh = open("ethnicity_max_topmed_only.txt")
 for line in infh.xreadlines():
 	sample_id, ethnicity = line.strip().split("\t")
 	if sample_id in unrelatedList: #only unrelated
@@ -81,9 +85,9 @@ def makeSlurm(tgt, dep, cmd):
 			IN.close()
 			os.chmod("{slurmScriptFile}".format(**opts), 0755)
 
-			cmd_tmp.append("\tsrun -p topmed -J {jobName} -D {outputDir} {param} {slurmScriptFile} \n".format(**opts))
+			cmd_tmp.append("\tsrun -p topmed,nomosix -J {jobName} -D {outputDir} {param} {slurmScriptFile} \n".format(**opts))
 		else:
-			cmd_tmp.append("\tsrun -p topmed -J {jobName} -D {outputDir} {param} {command} \n".format(**opts))
+			cmd_tmp.append("\tsrun -p topmed,nomosix -J {jobName} -D {outputDir} {param} {command} \n".format(**opts))
 	cmd_tmp.append("\ttouch {tgt}\n".format(tgt=tgt))
 	cmds.append(cmd_tmp)
  
@@ -147,12 +151,12 @@ outputFile = ""
 opts={}
 
 ##additional parameters
-launchMethod = "slurm"
+launchMethod = "local" #need to use $$ if running local since make needs escape for $
 opts["outputDir"] = os.getcwd()
 opts["jobName"] = "singleton"
 opts["makeFile"] = "makefile_{jobName}".format(**opts)
-exclude = "--exclude=topmed,topmed5,topmed6,topmed7,topmed8,\"r[6301-6315]\""
-opts["param"] = "{exclude} --time=0-24:0".format(exclude = exclude) #indicate this is a quick job
+exclude = "--exclude=topmed,topmed5,topmed6,topmed7,topmed8" #,\"r[6301-6315]\""
+opts["param"] = "{exclude} --time=0-12:0".format(exclude = exclude) #indicate this is a quick job
 
 #create directory needed for slurm script 
 opts["slurmScriptsDir"] = "{outputDir}/slurm_scripts".format(**opts)
@@ -185,28 +189,29 @@ for a in [1,4,5]:
 			tgt = "result/count_{ethnicityIdx}_{cureent_size}_{chr}.txt.OK".format(**opts)
 			inputFilesOK.append(tgt)
 			dep = ""
-			cmd = ["bcftools view --type snps -S temp/id_{ethnicityIdx}_{cureent_size}_{chr}.txt --force-samples -G /net/topmed4/working/hmkang/freeze3a/v4/release/passgt.minDP10/ALL.chr{chr}.freeze3a.pass.gtonly.genotypes.bcf | bcftools query -i 'INFO/AC==1' -f '%CHROM\\t%POS\\t%INFO/AC\\t%INFO/AN\\n' | wc -l | awk '{{print \"{ethnicityIdx}\\t{cureent_size}\\t{chr}\\t\"$1}}' > {outputDir}/result/count_{ethnicityIdx}_{cureent_size}_{chr}.txt".format(**opts)]
+			cmd = ["bcftools view --type snps -S temp/id_{ethnicityIdx}_{cureent_size}_{chr}.txt --force-samples -G /net/topmed4/working/hmkang/freeze3a/v4/release/passgt.minDP10/ALL.chr{chr}.freeze3a.pass.gtonly.genotypes.bcf | bcftools query -i 'INFO/AC==1' -f '%CHROM\\t%POS\\t%INFO/AC\\t%INFO/AN\\n' | wc -l | awk '{{print \"{ethnicityIdx}\\t{cureent_size}\\t{chr}\\t\"$$1}}' > {outputDir}/result/count_{ethnicityIdx}_{cureent_size}_{chr}.txt".format(**opts)]
 			# cmd = ["bcftools view --type snps -S temp/id_{ethnicityIdx}_{cureent_size}_{chr}.txt --force-samples -G /net/topmed2/working/khlin/topmed.freeze3.phased.hgdp.snp/topmed.freeze3.chr{chr}.phased.hgdp.snp.filtered.vcf.gz | bcftools query -i 'INFO/AC==1' -f '%CHROM\\t%POS\\t%INFO/AC\\t%INFO/AN\\n' | wc -l | awk '{{print \"{ethnicityIdx}\\t{cureent_size}\\t{chr}\\t\"$$1}}' > {outputDir}/result/count_{ethnicityIdx}_{cureent_size}_{chr}.txt".format(**opts)]  ##use a smaller file for test run
 			makeJob(launchMethod, tgt, dep, cmd)
 
 #create all unrelated sample id by ecurrent_size, chr. 99=all unrelated individuals
 #set seed, make sure results are tractable
-random.seed(464351)
+random.seed(987362)
 #shuffle the ethnicity list
-random.shuffle(unrelatedList)
-opts["size"]=500
-for b in numpy.arange(opts["size"], len(unrelatedList), step=opts["size"]):
+random.shuffle(ethnicityList)
+unrelated_ethnicityList = [x[0] for x in ethnicityList]
+opts["size"]=200
+for b in numpy.arange(opts["size"], len(unrelated_ethnicityList), step=opts["size"]):
 	opts["cureent_size"] = b
 	for c in numpy.arange(1,23):
 		opts["chr"] = c
 		outfh = open("temp/id_{cureent_size}_{chr}.txt".format(**opts), 'w')
-		outfh.writelines('\n'.join(unrelatedList[0:opts["cureent_size"]])) #first i samples
+		outfh.writelines('\n'.join(unrelated_ethnicityList[0:opts["cureent_size"]])) #first i samples
 		outfh.close()
 
 		tgt = "result/count_{cureent_size}_{chr}.txt.OK".format(**opts)
 		inputFilesOK.append(tgt)
 		dep = ""
-		cmd = ["bcftools view --type snps -S temp/id_{cureent_size}_{chr}.txt --force-samples -G /net/topmed4/working/hmkang/freeze3a/v4/release/passgt.minDP10/ALL.chr{chr}.freeze3a.pass.gtonly.genotypes.bcf | bcftools query -i 'INFO/AC==1' -f '%CHROM\\t%POS\\t%INFO/AC\\t%INFO/AN\\n' | wc -l | awk '{{print \"99\\t{cureent_size}\\t{chr}\\t\"$1}}' > {outputDir}/result/count_{cureent_size}_{chr}.txt".format(**opts)]
+		cmd = ["bcftools view --type snps -S temp/id_{cureent_size}_{chr}.txt --force-samples -G /net/topmed4/working/hmkang/freeze3a/v4/release/passgt.minDP10/ALL.chr{chr}.freeze3a.pass.gtonly.genotypes.bcf | bcftools query -i 'INFO/AC==1' -f '%CHROM\\t%POS\\t%INFO/AC\\t%INFO/AN\\n' | wc -l | awk '{{print \"99\\t{cureent_size}\\t{chr}\\t\"$$1}}' > {outputDir}/result/count_{cureent_size}_{chr}.txt".format(**opts)]
 		# cmd = ["bcftools view --type snps -S temp/id_{ethnicityIdx}_{cureent_size}_{chr}.txt --force-samples -G /net/topmed2/working/khlin/topmed.freeze3.phased.hgdp.snp/topmed.freeze3.chr{chr}.phased.hgdp.snp.filtered.vcf.gz | bcftools query -i 'INFO/AC==1' -f '%CHROM\\t%POS\\t%INFO/AC\\t%INFO/AN\\n' | wc -l | awk '{{print \"{ethnicityIdx}\\t{cureent_size}\\t{chr}\\t\"$$1}}' > {outputDir}/result/count_{ethnicityIdx}_{cureent_size}_{chr}.txt".format(**opts)]  ##use a smaller file for test run
 		makeJob(launchMethod, tgt, dep, cmd)
 
